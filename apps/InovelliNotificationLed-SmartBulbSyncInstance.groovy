@@ -50,9 +50,9 @@ def initialize() {
 
 def levelChanged(evt) {
     logEvent(evt, "levelChanged")
-    def level = evt.value
-    if (level < 10) level = 10
-    notificationChild.setLevel evt.value 
+    def level = evt.value as Integer
+    if (level == null || level < 10) level = 10
+    notificationChild.setLevel level 
 }
 
 def bulbOn(evt) {
@@ -96,6 +96,3 @@ private contactIsOpen(c) {
     log.debug "Contact state of ${c.label}(${c.name}) is $val"
     return val == 'open';
 }
-
-
-
