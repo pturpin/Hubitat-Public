@@ -14,20 +14,43 @@
  */
 
 definition(
-    name:"Inovelli Smart Bulb LED Notification Sync",
-    namespace: "pturpin",
-    author: "Paul Turpin",
-    description: "App to keep the LED light strip brightness in sync with bulb level",
-    category: "Convenience",
-    iconUrl: "",
-    iconX2Url: "",
-    iconX3Url: ""
+    parent:      "pturpin:Inovelli Smart Bulb LED Notification Sync", 
+    name:        "Inovelli Smart Bulb LED Notification Sync Child",
+    namespace:   "pturpin",
+    author:      "Paul Turpin",
+    description: "Child app to keep the one LED light strip brightness in sync with bulb level",
+    documentationLink: "https://community.inovelli.com/t/led-bar-smart-bulbs-etc/4635/9",
+    category:    "Convenience",
+    iconUrl:     "",
+    iconX2Url:   "",
+    iconX3Url:   "",
+    importUrl:   "https://raw.githubusercontent.com/pturpin/Hubitat-Public/master/apps/InovelliNotificationLed-SmartBulbSyncInstanceChild.groovy",
 )
 
 preferences {
-    page(name: "selectDevices", title: "Select Devices", install: true, uninstall: true) {
-        section ("Smart Bulb")                   { input "smartBulb",         "capability.switchLevel",   required: true }
-        section ("Notifiction Child")            { input "notificationChild", "capability.switchLevel",   required: true }
+	page(name: "mainPage")
+}
+
+def mainPage() {
+    dynamicPage(name: "mainPage", title: "<h2 style='color:#1A77C9;font-weight: bold'>Configuration</h2>", install: true, uninstall: true) {
+        if (!app.label) {
+			app.updateLabel(app.name)
+		}
+        section ("<h3 style='color:#1A77C9;font-weight: bold'>Introduction</h3>") {
+            paragraph "You can marry one smart bulb or bulb group to one LED on an Inovelli switch. The bulbs are the source of the level changes and the switch " +
+                      "LED is the output - it is a one-way sync only. Bulbs and bulb groups from the Philips Hue bridge are supported."
+            paragraph "You must be using the Inovelli-supplied drivers for the switch, you must have created the 'LED Color' child device by activating the " +
+                      "'Create \"LED Color\" Child Device' option in the driver preferences. The LED Color device is your Notification Child device, below."
+        }
+        section("<span style='color:#1A77C9'>" + (app?.label ?: app?.name).toString() +"</span>") {
+			input(name:	"nameOverride", type: "string", title: "Custom name for this ${app.name}?", multiple: false, required: false, submitOnChange: true)
+            
+			if (settings.nameOverride) {
+				app.updateLabel(settings.nameOverride)
+			}
+		}
+        section ("Smart Bulb (or group)")        { input "smartBulb",         "capability.switchLevel",   required: true }
+        section ("LED Color Notifiction Child")  { input "notificationChild", "capability.switchLevel",   required: true }
     }
 } 
 
@@ -39,6 +62,7 @@ def installed() {
 def updated() {
     log.debug "Updated with settings: ${settings}"
     unsubscribe()
+    unschedule()
     initialize()
 }
 
@@ -46,6 +70,7 @@ def initialize() {
     subscribe(smartBulb, "level", levelChanged)
     subscribe(smartBulb, "switch.on", bulbOn)
     subscribe(smartBulb, "switch.off", bulbOff)
+    app.updateLabel(createAppLabel())
 }
 
 def levelChanged(evt) {
@@ -65,6 +90,13 @@ def bulbOn(evt) {
 def bulbOff(evt) {
     logEvent(evt, "bulbOff")
     notificationChild.setLevel 10
+}
+
+def createAppLabel() {
+	if (settings.nameOverride && settings.nameOverride.size() > 0) {
+		return settings.nameOverride	
+	} 
+	return "Sync " + settings.notificationChild.displayName + " to " + settings.smartBulb.displayName;
 }
 
 ///////////////// Common Utility Methods ///////////////////////////////////////////
